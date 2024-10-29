@@ -4,132 +4,105 @@
 //
 //  Created by Ghada Alshabanat on 20/04/1446 AH.
 //
-
 import SwiftUI
 
 struct Set_Reminder: View {
-    @Environment(\.dismiss)var dismiss
-    @Binding var showSheet:Bool
-    @State var plantName:String=""
-    @State var RoomOptions=["Bedroom","Living Room","Kitchen","Balcony","Bathroom"]
-    @State var Room:String="Bedroom"
-    @State var LightOptions=["Full Sun","Partial Sun","Low Light"]
-    @State var Light:String="Full Sun"
-    @State var WateringDaysOptions=["Every day","Every 2 days","Every 3 days","Once a week","Every 10 days","Every 2 weeks"]
-    @State var WateringDays:String="Every day"
-    @State var WaterOptions=["20-50 ml","50-100 ml","100-200 ml","200-300 ml"]
-    @State var Water:String="20-50 ml"
-    
+    @Environment(\.dismiss) var dismiss // Environment variable to dismiss the view
+    @ObservedObject var plantViewModel: PlantViewModel // ObservedObject to manage plant data
+    @Binding var showSheet: Bool // Controls the visibility of the sheet
+    @State private var navigateToRemindersList = false // Controls navigation to the reminders list
 
     var body: some View {
-
         NavigationStack {
-           
             Form {
-                //Section#1
-                Section{
-                  HStack{
-                        Text("Plant Name")
-                        TextField("Pothos", text: $plantName)
+                // Section 1: Plant Name
+                Section {
+                    HStack {
+                        Text("Plant Name") // Label for plant name
+                        TextField("Pothos", text: $plantViewModel.name) // Text field for entering plant name
+                    }
+                }
+
+                // Section 2: Room and Light
+                Section {
+                    HStack {
+                        Image(systemName: "location") // Location icon
+                        Picker("Room", selection: $plantViewModel.location) {
+                            ForEach(plantViewModel.RoomOptions, id: \.self) { room in
+                                Text(room) // Displays available room options
+                            }
                         }
                     }
-                //Section#2
-                Section{
-                   
-                        HStack{
-                        Image(systemName: "location")
-                        Picker("Room", selection: $Room)
-                        {
-                            ForEach(RoomOptions,id:\.self)
-                            {
-                                Text($0)
-                            }
-                            
-                        }
-                        //.pickerStyle(MenuPickerStyle()) يطلع لونه ازرق
-                        }
-                        HStack{
-                        Image(systemName: "sun.max")
-                        Picker("Light", selection: $Light)
-                        {
-                            ForEach(LightOptions,id:\.self)
-                            {
-                                Text($0)
+
+                    HStack {
+                        Image(systemName: "sun.max") // Sunlight icon
+                        Picker("Light", selection: $plantViewModel.sunlight) {
+                            ForEach(plantViewModel.lightOptions, id: \.0) { option in
+                                HStack {
+                                    Image(systemName: option.1) // SF Symbols icon
+                                    Text(option.0) // Corresponding text
+                                }
+                                .tag(option.0) // Sets the tag for the selected option
                             }
                         }
-                        }
-              
                     }
-                //Section#3
-                Section{
-                   
-                        HStack{
-                        Image(systemName: "drop")
-                        Picker("Watering Days", selection: $WateringDays)
-                        {
-                            ForEach(WateringDaysOptions,id:\.self)
-                            {
-                                Text($0)
-                            }
-                            
-                        }
-                      
-                        }
-                        HStack{
-                        Image(systemName: "drop")
-                        Picker("Water", selection: $Water)
-                        {
-                            ForEach(WaterOptions,id:\.self)
-                            {
-                                Text($0)
+                }
+
+                // Section 3: Watering Days and Amount
+                Section {
+                    HStack {
+                        Image(systemName: "drop") // Water drop icon
+                        Picker("Watering Days", selection: $plantViewModel.WateringDays) {
+                            ForEach(plantViewModel.WateringDaysOptions, id: \.self) { day in
+                                Text(day) // Displays watering day options
                             }
                         }
-                        }
-             
                     }
-              
-                    
-               
+
+                    HStack {
+                        Image(systemName: "drop") // Water drop icon
+                        Picker("Water", selection: $plantViewModel.Water) {
+                            ForEach(plantViewModel.WaterOptions, id: \.self) { water in
+                                Text(water) // Displays water amount options
+                            }
+                        }
+                    }
+                }
             }
-          
-                VStack{
-                    
-                    
-                    
-                      }
-                
-                .navigationTitle("Set Reminder")
-                .navigationBarTitleDisplayMode(.inline)
-            //Button
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {//left
-                        
-                        Button("Cancel") {
-                            //dismiss()
-                            showSheet=false
-                                          }
-                        .foregroundColor(Color("Green"))
+            .navigationTitle("Set Reminder") // Sets the navigation title
+            .navigationBarTitleDisplayMode(.inline) // Displays the title in the toolbar
+            .navigationBarBackButtonHidden(true) // Hides the back button
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { // Cancel button on the left
+                    Button("Cancel") {
+                        plantViewModel.resetFields() // Resets the fields
+                        showSheet = false // Closes the sheet
                     }
-                    
-                    ToolbarItem(placement: .topBarTrailing) {// Right
-                        Button("Save") {
-                       //                            /*@START_MENU_TOKEN@*//*@PLACEHOLDER=Action@*/ /*@END_MENU_TOKEN@*/
-                                               }
-                        .foregroundColor(Color("Green"))
+                    .foregroundColor(Color("Green")) // Sets the button color
+                }
+
+                ToolbarItem(placement: .topBarTrailing) { // Save button on the right
+                    Button("Save") {
+                        plantViewModel.addReminder() // Adds the reminder
+                        plantViewModel.resetFields() // Resets the fields
+                        showSheet = false // Closes the sheet
+                        navigateToRemindersList = true // Enables navigation
                     }
+                    .foregroundColor(Color("Green")) // Sets the button color
                 }
-            // End of tool bar
-             
-                }
-            
-            
-            
+            }
+
+            // Navigation to the reminders page when saved
+            NavigationLink(destination: TodatReminder(plantViewModel: plantViewModel), isActive: $navigateToRemindersList) {
+                EmptyView() // Hidden link for navigation
+            }
+            .hidden() // Makes the link invisible
         }
-    
-   
+    }
 }
 
 #Preview {
-    Set_Reminder(showSheet:.constant(false))
+    Set_Reminder(plantViewModel: PlantViewModel(), showSheet: .constant(false))
         .preferredColorScheme(.dark)
 }
+
